@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EvidenceLock - Step 2: Claim Extraction Engine</title>
-    <!-- Google Fonts for modern typography -->
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -26,6 +26,10 @@
             --info: #0284c7;
             --info-light: #f0f9ff;
             --info-border: #bae6fd;
+            --warning: #f59e0b;
+            --warning-light: #fffbeb;
+            --error: #ef4444;
+            --error-light: #fef2f2;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
             --radius-lg: 16px;
@@ -49,7 +53,7 @@
             flex-direction: column;
         }
 
-        /* Navbar Header */
+        /* Header Navbar */
         header {
             background-color: var(--surface);
             border-bottom: 1px solid var(--border);
@@ -102,7 +106,6 @@
             color: #1e1b4b;
         }
 
-        /* Nav links */
         .nav-links {
             display: flex;
             align-items: center;
@@ -140,7 +143,7 @@
             border: 1px solid var(--border);
         }
 
-        /* Main Layout */
+        /* Main */
         main {
             max-width: 1280px;
             margin: 2rem auto;
@@ -158,18 +161,38 @@
             font-size: 2.25rem;
             font-weight: 800;
             color: #0f172a;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             letter-spacing: -0.03em;
         }
 
         .hero p {
             color: var(--text-muted);
             font-size: 1.05rem;
-            max-width: 680px;
+            max-width: 720px;
             margin: 0 auto;
         }
 
-        /* Card Container */
+        /* Alert / Flash */
+        .flash-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .alert {
+            padding: 0.85rem 1.25rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .alert-success { background-color: var(--success-light); color: #065f46; border: 1px solid var(--success-border); }
+        .alert-info { background-color: var(--info-light); color: #075985; border: 1px solid var(--info-border); }
+        .alert-warning { background-color: var(--warning-light); color: #92400e; border: 1px solid #fde68a; }
+        .alert-error { background-color: var(--error-light); color: #991b1b; border: 1px solid #fecaca; }
+
+        /* Card styles */
         .card {
             background-color: var(--surface);
             border-radius: var(--radius-lg);
@@ -199,6 +222,158 @@
         .card-title-group p {
             font-size: 0.875rem;
             color: var(--text-muted);
+        }
+
+        .status-pills {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background-color: #f8fafc;
+            color: #334155;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Report Input Grid (Pasting vs Uploading vs Sample) */
+        .input-methods-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .input-methods-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-box {
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .input-box-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #1e293b;
+        }
+
+        .textarea-report {
+            width: 100%;
+            height: 180px;
+            padding: 0.85rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background-color: white;
+            color: #0f172a;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+
+        .textarea-report:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        }
+
+        .side-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .sub-card {
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+        }
+
+        .sub-card-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .file-input-wrapper {
+            margin-bottom: 0.75rem;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            font-size: 0.8rem;
+            width: 100%;
+            color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            color: white;
+            border: none;
+            padding: 0.65rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.25);
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(79, 70, 229, 0.35);
+        }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--border);
+            padding: 0.6rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+            color: #0f172a;
         }
 
         .btn-action {
@@ -252,7 +427,7 @@
             font-family: 'JetBrains Mono', monospace;
         }
 
-        /* Table Styling */
+        /* Table */
         .table-responsive {
             overflow-x: auto;
             border-radius: var(--radius-md);
@@ -298,7 +473,6 @@
             border-bottom: none;
         }
 
-        /* Badges */
         .badge-type {
             display: inline-flex;
             align-items: center;
@@ -312,17 +486,8 @@
             white-space: nowrap;
         }
 
-        .badge-growth {
-            background-color: #e0e7ff;
-            color: #4338ca;
-            border: 1px solid #c7d2fe;
-        }
-
-        .badge-total {
-            background-color: #ecfdf5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
+        .badge-growth { background-color: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+        .badge-total { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
 
         .badge-subject {
             background-color: #f1f5f9;
@@ -357,12 +522,8 @@
             max-width: 220px;
         }
 
-        .time-none {
-            color: #94a3b8;
-            font-style: italic;
-        }
+        .time-none { color: #94a3b8; font-style: italic; }
 
-        /* Source Report Accordion / Preview Box */
         details.report-box {
             background-color: #f8fafc;
             border: 1px solid var(--border);
@@ -393,7 +554,7 @@
             white-space: pre-wrap;
             color: #334155;
             line-height: 1.6;
-            max-height: 280px;
+            max-height: 240px;
             overflow-y: auto;
         }
 
@@ -426,32 +587,112 @@
                     <a href="/results-dashboard" class="nav-link">📈 4. Dashboard</a>
                 </nav>
             </div>
-            <span class="step-badge">Step 2: Extraction Active</span>
+            <span class="step-badge">Step 2: Claim Extraction</span>
         </div>
     </header>
 
-    <!-- Main Content Area -->
+    <!-- Main Content -->
     <main>
         
         <!-- Hero Section -->
         <section class="hero">
             <h1>Claim Extraction Engine</h1>
-            <p>Automatically scans business reports to detect checkable numeric claims (growth percentages & total counts) while filtering out unverifiable statements.</p>
+            <p>Paste or upload any business report to automatically detect checkable numbers (growth % and total counts).</p>
         </section>
 
-        <!-- Claims Results Card -->
+        <!-- Flash messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- REPORT INPUT CARD -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <h2>Provide Business Report Text</h2>
+                    <p>Paste text directly, upload a .txt file, or load the sample report.</p>
+                </div>
+                <div class="status-pills">
+                    <span class="pill">📄 Source: {{ report_source }}</span>
+                    <span class="pill">📊 Data: {{ dataset_name }}</span>
+                </div>
+            </div>
+
+            <div class="input-methods-grid">
+                
+                <!-- Option 1: Direct Textarea Input -->
+                <form action="/extract-claims" method="POST" class="input-box">
+                    <div class="input-box-header">
+                        <span>✏️ Option A: Paste Report Text</span>
+                        <small style="color: var(--text-muted); font-weight: 500;">Type or paste claims below</small>
+                    </div>
+                    <textarea name="report_text" class="textarea-report" placeholder="Paste your business report here (e.g. 'Revenue increased by 18% in the most recent month... We processed a total of 5,000 orders...')">{{ report_text }}</textarea>
+                    <div>
+                        <button type="submit" class="btn-primary">
+                            <span>🔍</span> Extract Claims from Text
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Side Options: Upload .txt or Try Sample Report -->
+                <div class="side-options">
+                    
+                    <!-- Option 2: Upload File -->
+                    <form action="/extract-claims" method="POST" enctype="multipart/form-data" class="sub-card">
+                        <div class="sub-card-title">
+                            <span>📁</span> Option B: Upload .txt File
+                        </div>
+                        <div class="file-input-wrapper">
+                            <input type="file" name="report_file" accept=".txt,.md" required>
+                        </div>
+                        <button type="submit" class="btn-secondary">
+                            <span>⬆️</span> Upload & Extract
+                        </button>
+                    </form>
+
+                    <!-- Option 3: Quick Sample Demo -->
+                    <form action="/extract-claims" method="POST" class="sub-card" style="background-color: #fdfefe;">
+                        <div class="sub-card-title">
+                            <span>⚡</span> Quick Demo
+                        </div>
+                        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                            Load the bundled Superstore quarterly sales report with 1 click.
+                        </p>
+                        <input type="hidden" name="action" value="load_sample">
+                        <button type="submit" class="btn-secondary" style="background-color: #eef2ff; color: #4338ca; border-color: #c7d2fe;">
+                            <span>🚀</span> Try Sample Report
+                        </button>
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- EXTRACTED CLAIMS RESULTS CARD -->
         <div class="card">
             <div class="card-header">
                 <div class="card-title-group">
                     <h2>Extracted Checkable Claims</h2>
-                    <p>Found <strong>{{ total_claims }}</strong> checkable claims ready for calculation in Step 3.</p>
+                    <p>Found <strong>{{ total_claims }}</strong> checkable claims ready for verification in Step 3.</p>
                 </div>
-                <a href="/verify-claims" class="btn-action">
-                    <span>⚖️</span> Run Verification Engine &rarr;
-                </a>
+                {% if claims %}
+                    <a href="/verify-claims" class="btn-action">
+                        <span>⚖️</span> Verify Claims Against Data &rarr;
+                    </a>
+                {% endif %}
             </div>
 
-            <!-- Quick Metrics Grid -->
+            <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-label">Total Claims Found</div>
@@ -483,12 +724,7 @@
                         {% if claims %}
                             {% for claim in claims %}
                                 <tr>
-                                    <!-- 1. Original Sentence -->
-                                    <td class="sentence-cell">
-                                        "{{ claim.original_sentence }}"
-                                    </td>
-
-                                    <!-- 2. Claim Type -->
+                                    <td class="sentence-cell">"{{ claim.original_sentence }}"</td>
                                     <td>
                                         {% if claim.claim_type == 'growth' %}
                                             <span class="badge-type badge-growth">📈 Growth</span>
@@ -498,8 +734,6 @@
                                             <span class="badge-type">{{ claim.claim_type }}</span>
                                         {% endif %}
                                     </td>
-
-                                    <!-- 3. Claimed Value -->
                                     <td>
                                         <span class="claimed-val">
                                             {% if claim.claim_type == 'growth' %}
@@ -509,13 +743,7 @@
                                             {% endif %}
                                         </span>
                                     </td>
-
-                                    <!-- 4. Subject -->
-                                    <td>
-                                        <span class="badge-subject">{{ claim.subject }}</span>
-                                    </td>
-
-                                    <!-- 5. Time Period -->
+                                    <td><span class="badge-subject">{{ claim.subject }}</span></td>
                                     <td class="time-cell">
                                         {% if claim.time_period %}
                                             📅 {{ claim.time_period }}
@@ -527,8 +755,8 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                                    No checkable numeric claims found in the report text.
+                                <td colspan="5" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                                    No checkable numeric claims found in the provided report text. Try pasting a report with growth % or counts.
                                 </td>
                             </tr>
                         {% endif %}
@@ -536,10 +764,10 @@
                 </table>
             </div>
 
-            <!-- Collapsible Source Report Text Viewer -->
-            <details class="report-box" open>
+            <!-- Collapsible Raw Text -->
+            <details class="report-box">
                 <summary>
-                    <span>📄</span> Source Report Text (sample_report.txt)
+                    <span>📄</span> View Full Active Report Text ({{ report_source }})
                 </summary>
                 <div class="raw-text-content">{{ report_text }}</div>
             </details>

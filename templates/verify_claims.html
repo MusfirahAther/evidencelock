@@ -216,6 +216,7 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .btn-action {
@@ -238,15 +239,42 @@
             box-shadow: 0 6px 14px rgba(79, 70, 229, 0.4);
         }
 
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: #334155;
+            text-decoration: none;
+            padding: 0.6rem 1.1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e2e8f0;
+            color: #0f172a;
+        }
+
+        .dataset-pills {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
         .dataset-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            background-color: #f1f5f9;
+            background-color: #f8fafc;
             color: #334155;
             padding: 0.35rem 0.75rem;
             border-radius: 9999px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 600;
             border: 1px solid var(--border);
             font-family: 'JetBrains Mono', monospace;
@@ -267,18 +295,9 @@
             padding: 1rem;
         }
 
-        .stat-card.stat-correct {
-            background-color: var(--correct-bg);
-            border-color: var(--correct-border);
-        }
-        .stat-card.stat-wrong {
-            background-color: var(--wrong-bg);
-            border-color: var(--wrong-border);
-        }
-        .stat-card.stat-unclear {
-            background-color: var(--unclear-bg);
-            border-color: var(--unclear-border);
-        }
+        .stat-card.stat-correct { background-color: var(--correct-bg); border-color: var(--correct-border); }
+        .stat-card.stat-wrong { background-color: var(--wrong-bg); border-color: var(--wrong-border); }
+        .stat-card.stat-unclear { background-color: var(--unclear-bg); border-color: var(--unclear-border); }
 
         .stat-label {
             font-size: 0.75rem;
@@ -304,7 +323,7 @@
         .stat-card.stat-wrong .stat-value { color: var(--wrong-text); }
         .stat-card.stat-unclear .stat-value { color: var(--unclear-text); }
 
-        /* Table Styling */
+        /* Table */
         .table-responsive {
             overflow-x: auto;
             border-radius: var(--radius-md);
@@ -320,9 +339,7 @@
             text-align: left;
         }
 
-        thead {
-            background-color: #f8fafc;
-        }
+        thead { background-color: #f8fafc; }
 
         th {
             padding: 1rem;
@@ -342,15 +359,9 @@
             vertical-align: top;
         }
 
-        tbody tr:hover {
-            background-color: #fbfcfe;
-        }
+        tbody tr:hover { background-color: #fbfcfe; }
+        tbody tr:last-child td { border-bottom: none; }
 
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* Verdict Badges */
         .verdict-badge {
             display: inline-flex;
             align-items: center;
@@ -364,23 +375,9 @@
             white-space: nowrap;
         }
 
-        .verdict-correct {
-            background-color: var(--correct-bg);
-            color: var(--correct-text);
-            border: 1px solid var(--correct-border);
-        }
-
-        .verdict-wrong {
-            background-color: var(--wrong-bg);
-            color: var(--wrong-text);
-            border: 1px solid var(--wrong-border);
-        }
-
-        .verdict-unclear {
-            background-color: var(--unclear-bg);
-            color: var(--unclear-text);
-            border: 1px solid var(--unclear-border);
-        }
+        .verdict-correct { background-color: var(--correct-bg); color: var(--correct-text); border: 1px solid var(--correct-border); }
+        .verdict-wrong { background-color: var(--wrong-bg); color: var(--wrong-text); border: 1px solid var(--wrong-border); }
+        .verdict-unclear { background-color: var(--unclear-bg); color: var(--unclear-text); border: 1px solid var(--unclear-border); }
 
         .claimed-val {
             font-family: 'JetBrains Mono', monospace;
@@ -448,7 +445,7 @@
                     <a href="/results-dashboard" class="nav-link">📈 4. Dashboard</a>
                 </nav>
             </div>
-            <span class="step-badge">Step 3: Verification Active</span>
+            <span class="step-badge">Step 3: Verification Engine</span>
         </div>
     </header>
 
@@ -466,9 +463,15 @@
             <div class="card-header">
                 <div class="card-title-group">
                     <h2>Verification Audit Results</h2>
-                    <p>Verified against: <span class="dataset-pill">📂 {{ dataset_name }}</span></p>
+                    <div class="dataset-pills" style="margin-top: 0.4rem;">
+                        <span class="dataset-pill">📊 Data: {{ dataset_name }}</span>
+                        <span class="dataset-pill">📄 Report: {{ report_source }}</span>
+                    </div>
                 </div>
                 <div class="header-actions">
+                    <a href="/extract-claims" class="btn-secondary">
+                        <span>✏️</span> Edit Report Text
+                    </a>
                     <a href="/results-dashboard" class="btn-action">
                         <span>📈</span> View Final Dashboard &rarr;
                     </a>
@@ -561,8 +564,8 @@
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                                    No claims available to verify. Please upload a dataset and extract claims first.
+                                <td colspan="5" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                                    No claims found to verify. Please go to <a href="/extract-claims">Step 2</a> to paste or upload a report.
                                 </td>
                             </tr>
                         {% endif %}

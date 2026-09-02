@@ -214,6 +214,28 @@
             color: var(--text-muted);
         }
 
+        .dataset-pills {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.4rem;
+        }
+
+        .dataset-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: #f8fafc;
+            color: #334155;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
         /* PART B: 3 Summary Stat Boxes */
         .summary-stats-grid {
             display: grid;
@@ -233,16 +255,9 @@
             transition: all 0.2s;
         }
 
-        .summary-stat-card.stat-checked {
-            border-left: 4px solid var(--primary);
-        }
-        .summary-stat-card.stat-accuracy {
-            border-left: 4px solid #0284c7;
-        }
-        .summary-stat-card.stat-attention {
-            border-left: 4px solid var(--wrong);
-            background-color: #fffafb;
-        }
+        .summary-stat-card.stat-checked { border-left: 4px solid var(--primary); }
+        .summary-stat-card.stat-accuracy { border-left: 4px solid #0284c7; }
+        .summary-stat-card.stat-attention { border-left: 4px solid var(--wrong); background-color: #fffafb; }
 
         .summary-stat-label {
             font-size: 0.8rem;
@@ -265,9 +280,7 @@
             margin-bottom: 0.35rem;
         }
 
-        .stat-attention .summary-stat-value {
-            color: var(--wrong-text);
-        }
+        .stat-attention .summary-stat-value { color: var(--wrong-text); }
 
         .summary-stat-sub {
             font-size: 0.8rem;
@@ -415,7 +428,6 @@
             box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
         }
 
-        /* Diff highlight indicators */
         .diff-tag {
             font-size: 0.7rem;
             font-weight: 700;
@@ -424,14 +436,8 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
-        .diff-tag-original {
-            background-color: #fee2e2;
-            color: #991b1b;
-        }
-        .diff-tag-corrected {
-            background-color: #d1fae5;
-            color: #065f46;
-        }
+        .diff-tag-original { background-color: #fee2e2; color: #991b1b; }
+        .diff-tag-corrected { background-color: #d1fae5; color: #065f46; }
 
         /* Footer */
         footer {
@@ -480,7 +486,10 @@
             <div class="card-header">
                 <div class="card-title-group">
                     <h2>Summary Audit Metrics</h2>
-                    <p>Calculated against ground-truth dataset: <strong>{{ dataset_name }}</strong></p>
+                    <div class="dataset-pills">
+                        <span class="dataset-pill">📊 Data: {{ dataset_name }}</span>
+                        <span class="dataset-pill">📄 Report: {{ report_source }}</span>
+                    </div>
                 </div>
             </div>
 
@@ -566,7 +575,7 @@
                 <!-- Left Panel: Original Report -->
                 <div class="report-panel panel-original">
                     <div class="report-panel-header">
-                        <span>Original Report Text</span>
+                        <span>Original Report Text ({{ report_source }})</span>
                         <span class="diff-tag diff-tag-original">Unverified</span>
                     </div>
                     <div class="report-text-body">{{ original_report_text }}</div>
@@ -592,7 +601,7 @@
         EvidenceLock &bull; Automated Business Report Fact-Checking Hackathon Project
     </footer>
 
-    <!-- Chart.js Initialization Script -->
+    <!-- Chart.js Script -->
     <script>
         const ctx = document.getElementById('verdictChart').getContext('2d');
         const correctCount = {{ correct_count }};
@@ -607,9 +616,9 @@
                     label: 'Number of Claims',
                     data: [correctCount, wrongCount, unclearCount],
                     backgroundColor: [
-                        '#10b981', // Green
-                        '#ef4444', // Red
-                        '#f59e0b'  // Yellow
+                        '#10b981',
+                        '#ef4444',
+                        '#f59e0b'
                     ],
                     borderColor: [
                         '#059669',
