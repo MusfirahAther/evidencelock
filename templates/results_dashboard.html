@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EvidenceLock - Step 4: Corrected Report & Summary Dashboard</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js for summary bar chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --primary-border: #c7d2fe;
+            --surface: #ffffff;
+            --background: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+
+            /* Verdict Colors */
+            --correct: #10b981;
+            --correct-bg: #ecfdf5;
+            --correct-text: #065f46;
+            --correct-border: #a7f3d0;
+
+            --wrong: #ef4444;
+            --wrong-bg: #fef2f2;
+            --wrong-text: #991b1b;
+            --wrong-border: #fecaca;
+
+            --unclear: #f59e0b;
+            --unclear-bg: #fffbeb;
+            --unclear-text: #92400e;
+            --unclear-border: #fde68a;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar */
+        header {
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            color: #1e1b4b;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.5rem 0.8rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            background-color: var(--primary-light);
+            font-weight: 700;
+        }
+
+        .step-badge {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.35rem 0.8rem;
+            border-radius: 9999px;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Main */
+        main {
+            max-width: 1280px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        /* Card styles */
+        .card {
+            background-color: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title-group h2 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .card-title-group p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        /* PART B: 3 Summary Stat Boxes */
+        .summary-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-stat-card {
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .summary-stat-card.stat-checked {
+            border-left: 4px solid var(--primary);
+        }
+        .summary-stat-card.stat-accuracy {
+            border-left: 4px solid #0284c7;
+        }
+        .summary-stat-card.stat-attention {
+            border-left: 4px solid var(--wrong);
+            background-color: #fffafb;
+        }
+
+        .summary-stat-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .summary-stat-value {
+            font-size: 2.25rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: #0f172a;
+            line-height: 1;
+            margin-bottom: 0.35rem;
+        }
+
+        .stat-attention .summary-stat-value {
+            color: var(--wrong-text);
+        }
+
+        .summary-stat-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Chart Section */
+        .chart-container-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: center;
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 860px) {
+            .chart-container-box {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .chart-canvas-wrapper {
+            position: relative;
+            height: 220px;
+            width: 100%;
+        }
+
+        .chart-legend-box {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.65rem 1rem;
+            background-color: white;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .legend-label-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 1rem;
+        }
+
+        /* PART A: Side-by-Side Before / After Reports */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .report-panel {
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+        }
+
+        .report-panel-header {
+            padding: 0.85rem 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .panel-original .report-panel-header {
+            background-color: #f1f5f9;
+            color: #334155;
+        }
+
+        .panel-corrected .report-panel-header {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border-bottom-color: #a7f3d0;
+        }
+
+        .report-text-body {
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            color: #1e293b;
+            background-color: white;
+            flex: 1;
+            max-height: 480px;
+            overflow-y: auto;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            text-decoration: none;
+            padding: 0.65rem 1.4rem;
+            font-size: 0.9rem;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Diff highlight indicators */
+        .diff-tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .diff-tag-original {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .diff-tag-corrected {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            background-color: var(--surface);
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="nav-container">
+            <div class="brand-group">
+                <a href="/" class="brand">
+                    <div class="logo-icon">🔒</div>
+                    <span class="brand-title">EvidenceLock</span>
+                </a>
+                <nav class="nav-links">
+                    <a href="/" class="nav-link">📊 1. Ingestion</a>
+                    <a href="/extract-claims" class="nav-link">🔍 2. Extraction</a>
+                    <a href="/verify-claims" class="nav-link">⚖️ 3. Verification</a>
+                    <a href="/results-dashboard" class="nav-link active">📈 4. Dashboard</a>
+                </nav>
+            </div>
+            <span class="step-badge">Step 4: Report Corrected & Audit Complete</span>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+        
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Executive Claim Audit & Corrected Report</h1>
+            <p>Full audit breakdown comparing reported claims against ground-truth data, with automatically corrected report text.</p>
+        </section>
+
+        <!-- PART B: SUMMARY DASHBOARD -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <h2>Summary Audit Metrics</h2>
+                    <p>Calculated against ground-truth dataset: <strong>{{ dataset_name }}</strong></p>
+                </div>
+            </div>
+
+            <!-- 3 Stat Boxes Above Chart -->
+            <div class="summary-stats-grid">
+                <!-- Stat 1: Total Claims Checked -->
+                <div class="summary-stat-card stat-checked">
+                    <div class="summary-stat-label">
+                        <span>Total Claims Checked</span>
+                        <span>📋</span>
+                    </div>
+                    <div class="summary-stat-value">{{ total_claims }}</div>
+                    <div class="summary-stat-sub">Numeric claims evaluated from report</div>
+                </div>
+
+                <!-- Stat 2: Accuracy Rate -->
+                <div class="summary-stat-card stat-accuracy">
+                    <div class="summary-stat-label">
+                        <span>Accuracy Rate</span>
+                        <span>🎯</span>
+                    </div>
+                    <div class="summary-stat-value">{{ accuracy_rate }}%</div>
+                    <div class="summary-stat-sub">{{ correct_count }} correct out of {{ correct_count + wrong_count }} checkable claims</div>
+                </div>
+
+                <!-- Stat 3: Claims Needing Attention -->
+                <div class="summary-stat-card stat-attention">
+                    <div class="summary-stat-label">
+                        <span style="color: var(--wrong-text);">Claims Needing Attention</span>
+                        <span>⚠️</span>
+                    </div>
+                    <div class="summary-stat-value">{{ wrong_count }}</div>
+                    <div class="summary-stat-sub">False or exaggerated numbers identified</div>
+                </div>
+            </div>
+
+            <!-- Chart & Legend -->
+            <div class="chart-container-box">
+                <div class="chart-canvas-wrapper">
+                    <canvas id="verdictChart"></canvas>
+                </div>
+                <div class="chart-legend-box">
+                    <div class="legend-row">
+                        <div class="legend-label-group">
+                            <span class="legend-dot" style="background-color: var(--correct);"></span>
+                            <span>CORRECT (Accurate)</span>
+                        </div>
+                        <span class="legend-count" style="color: var(--correct-text);">{{ correct_count }}</span>
+                    </div>
+                    <div class="legend-row">
+                        <div class="legend-label-group">
+                            <span class="legend-dot" style="background-color: var(--wrong);"></span>
+                            <span>WRONG (Exaggerated / False)</span>
+                        </div>
+                        <span class="legend-count" style="color: var(--wrong-text);">{{ wrong_count }}</span>
+                    </div>
+                    <div class="legend-row">
+                        <div class="legend-label-group">
+                            <span class="legend-dot" style="background-color: var(--unclear);"></span>
+                            <span>UNCLEAR (Insufficient Data)</span>
+                        </div>
+                        <span class="legend-count" style="color: var(--unclear-text);">{{ unclear_count }}</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- PART A: CORRECTED REPORT & BEFORE/AFTER COMPARISON -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <h2>Report Comparison: Before vs. After</h2>
+                    <p>Side-by-side inspection showing original statements alongside ground-truth corrected statements.</p>
+                </div>
+                <a href="/download-corrected-report" class="btn-download">
+                    <span>📥</span> Download Corrected Report (.txt)
+                </a>
+            </div>
+
+            <div class="comparison-grid">
+                
+                <!-- Left Panel: Original Report -->
+                <div class="report-panel panel-original">
+                    <div class="report-panel-header">
+                        <span>Original Report Text</span>
+                        <span class="diff-tag diff-tag-original">Unverified</span>
+                    </div>
+                    <div class="report-text-body">{{ original_report_text }}</div>
+                </div>
+
+                <!-- Right Panel: Corrected Report -->
+                <div class="report-panel panel-corrected">
+                    <div class="report-panel-header">
+                        <span>Corrected Report (EvidenceLock Verified)</span>
+                        <span class="diff-tag diff-tag-corrected">Ground Truth</span>
+                    </div>
+                    <div class="report-text-body">{{ corrected_report_text }}</div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        EvidenceLock &bull; Automated Business Report Fact-Checking Hackathon Project
+    </footer>
+
+    <!-- Chart.js Initialization Script -->
+    <script>
+        const ctx = document.getElementById('verdictChart').getContext('2d');
+        const correctCount = {{ correct_count }};
+        const wrongCount = {{ wrong_count }};
+        const unclearCount = {{ unclear_count }};
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['CORRECT', 'WRONG', 'UNCLEAR'],
+                datasets: [{
+                    label: 'Number of Claims',
+                    data: [correctCount, wrongCount, unclearCount],
+                    backgroundColor: [
+                        '#10b981', // Green
+                        '#ef4444', // Red
+                        '#f59e0b'  // Yellow
+                    ],
+                    borderColor: [
+                        '#059669',
+                        '#dc2626',
+                        '#d97706'
+                    ],
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    barThickness: 38
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return ` Claims: ${context.raw}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1,
+                            font: { family: "'Plus Jakarta Sans', sans-serif" }
+                        },
+                        grid: { color: '#f1f5f9' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                weight: '600'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

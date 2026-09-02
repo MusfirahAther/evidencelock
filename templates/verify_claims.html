@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EvidenceLock - Step 3: Verification Engine</title>
+    <!-- Google Fonts for modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --primary-border: #c7d2fe;
+            --surface: #ffffff;
+            --background: #f8fafc;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            
+            /* Verdict Colors */
+            --correct-bg: #ecfdf5;
+            --correct-text: #065f46;
+            --correct-border: #a7f3d0;
+            --correct-badge: #10b981;
+
+            --wrong-bg: #fef2f2;
+            --wrong-text: #991b1b;
+            --wrong-border: #fecaca;
+            --wrong-badge: #ef4444;
+
+            --unclear-bg: #fffbeb;
+            --unclear-text: #92400e;
+            --unclear-border: #fde68a;
+            --unclear-badge: #f59e0b;
+
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --radius-lg: 16px;
+            --radius-md: 10px;
+            --radius-sm: 6px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background);
+            color: var(--text-main);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Navbar Header */
+        header {
+            background-color: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .nav-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+            color: #1e1b4b;
+        }
+
+        /* Nav links */
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            padding: 0.5rem 0.8rem;
+            border-radius: var(--radius-md);
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background-color: var(--primary-light);
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+            background-color: var(--primary-light);
+            font-weight: 700;
+        }
+
+        .step-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.3rem 0.7rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border);
+        }
+
+        /* Main Layout */
+        main {
+            max-width: 1280px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            width: 100%;
+            flex: 1;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .hero h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+
+        /* Card Container */
+        .card {
+            background-color: var(--surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card-title-group h2 {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #0f172a;
+        }
+
+        .card-title-group p {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            color: white;
+            text-decoration: none;
+            padding: 0.6rem 1.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(79, 70, 229, 0.4);
+        }
+
+        .dataset-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.75rem;
+        }
+
+        .stat-card {
+            background-color: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+        }
+
+        .stat-card.stat-correct {
+            background-color: var(--correct-bg);
+            border-color: var(--correct-border);
+        }
+        .stat-card.stat-wrong {
+            background-color: var(--wrong-bg);
+            border-color: var(--wrong-border);
+        }
+        .stat-card.stat-unclear {
+            background-color: var(--unclear-bg);
+            border-color: var(--unclear-border);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+            color: var(--text-muted);
+        }
+
+        .stat-card.stat-correct .stat-label { color: var(--correct-text); }
+        .stat-card.stat-wrong .stat-label { color: var(--wrong-text); }
+        .stat-card.stat-unclear .stat-label { color: var(--unclear-text); }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f172a;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-card.stat-correct .stat-value { color: var(--correct-text); }
+        .stat-card.stat-wrong .stat-value { color: var(--wrong-text); }
+        .stat-card.stat-unclear .stat-value { color: var(--unclear-text); }
+
+        /* Table Styling */
+        .table-responsive {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        thead {
+            background-color: #f8fafc;
+        }
+
+        th {
+            padding: 1rem;
+            font-weight: 700;
+            color: #334155;
+            border-bottom: 2px solid var(--border);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 1rem;
+            color: #334155;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: top;
+        }
+
+        tbody tr:hover {
+            background-color: #fbfcfe;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Verdict Badges */
+        .verdict-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+
+        .verdict-correct {
+            background-color: var(--correct-bg);
+            color: var(--correct-text);
+            border: 1px solid var(--correct-border);
+        }
+
+        .verdict-wrong {
+            background-color: var(--wrong-bg);
+            color: var(--wrong-text);
+            border: 1px solid var(--wrong-border);
+        }
+
+        .verdict-unclear {
+            background-color: var(--unclear-bg);
+            color: var(--unclear-text);
+            border: 1px solid var(--unclear-border);
+        }
+
+        .claimed-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .real-val {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        .real-val-correct { color: #059669; }
+        .real-val-wrong { color: #dc2626; }
+        .real-val-unclear { color: #d97706; }
+
+        .sentence-cell {
+            font-weight: 600;
+            color: #1e293b;
+            max-width: 320px;
+            line-height: 1.45;
+        }
+
+        .evidence-cell {
+            font-size: 0.85rem;
+            color: #334155;
+            background-color: #f8fafc;
+            border-radius: var(--radius-sm);
+            padding: 0.6rem 0.8rem;
+            line-height: 1.45;
+            border: 1px solid var(--border);
+            max-width: 380px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            background-color: var(--surface);
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <header>
+        <div class="nav-container">
+            <div class="brand-group">
+                <a href="/" class="brand">
+                    <div class="logo-icon">🔒</div>
+                    <span class="brand-title">EvidenceLock</span>
+                </a>
+                <nav class="nav-links">
+                    <a href="/" class="nav-link">📊 1. Ingestion</a>
+                    <a href="/extract-claims" class="nav-link">🔍 2. Extraction</a>
+                    <a href="/verify-claims" class="nav-link active">⚖️ 3. Verification</a>
+                    <a href="/results-dashboard" class="nav-link">📈 4. Dashboard</a>
+                </nav>
+            </div>
+            <span class="step-badge">Step 3: Verification Active</span>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main>
+        
+        <!-- Hero Section -->
+        <section class="hero">
+            <h1>Claim Verification Engine</h1>
+            <p>Re-calculating business report statements directly from ground-truth data to catch false or exaggerated numbers.</p>
+        </section>
+
+        <!-- Verification Results Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title-group">
+                    <h2>Verification Audit Results</h2>
+                    <p>Verified against: <span class="dataset-pill">📂 {{ dataset_name }}</span></p>
+                </div>
+                <div class="header-actions">
+                    <a href="/results-dashboard" class="btn-action">
+                        <span>📈</span> View Final Dashboard &rarr;
+                    </a>
+                </div>
+            </div>
+
+            <!-- Summary Metrics Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Verified</div>
+                    <div class="stat-value">{{ total_claims }}</div>
+                </div>
+                <div class="stat-card stat-correct">
+                    <div class="stat-label">✅ Correct (Accurate)</div>
+                    <div class="stat-value">{{ correct_count }}</div>
+                </div>
+                <div class="stat-card stat-wrong">
+                    <div class="stat-label">❌ Wrong (Exaggerated)</div>
+                    <div class="stat-value">{{ wrong_count }}</div>
+                </div>
+                <div class="stat-card stat-unclear">
+                    <div class="stat-label">⚠️ Unclear (Ambiguous)</div>
+                    <div class="stat-value">{{ unclear_count }}</div>
+                </div>
+            </div>
+
+            <!-- Verification Table -->
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 32%;">Claim</th>
+                            <th style="width: 14%;">Verdict</th>
+                            <th style="width: 12%;">Claimed</th>
+                            <th style="width: 12%;">Real Value</th>
+                            <th style="width: 30%;">Evidence</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if results %}
+                            {% for res in results %}
+                                <tr>
+                                    <!-- 1. Original Claim Sentence -->
+                                    <td class="sentence-cell">
+                                        "{{ res.original_sentence }}"
+                                    </td>
+
+                                    <!-- 2. Verdict Badge with Color -->
+                                    <td>
+                                        {% if res.verdict == 'CORRECT' %}
+                                            <span class="verdict-badge verdict-correct">✅ CORRECT</span>
+                                        {% elif res.verdict == 'WRONG' %}
+                                            <span class="verdict-badge verdict-wrong">❌ WRONG</span>
+                                        {% else %}
+                                            <span class="verdict-badge verdict-unclear">⚠️ UNCLEAR</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- 3. Claimed Value -->
+                                    <td>
+                                        <span class="claimed-val">
+                                            {% if res.claimed_value is not none %}
+                                                {{ "{:,}".format(res.claimed_value) if res.claimed_value is number and res.claimed_value > 100 else res.claimed_value }}
+                                                {% if '%' in res.original_sentence %}%{% endif %}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </span>
+                                    </td>
+
+                                    <!-- 4. Real Value Calculated -->
+                                    <td>
+                                        {% if res.real_value is not none %}
+                                            <span class="real-val {% if res.verdict == 'CORRECT' %}real-val-correct{% elif res.verdict == 'WRONG' %}real-val-wrong{% else %}real-val-unclear{% endif %}">
+                                                {{ "{:+,}".format(res.real_value) if res.real_value is number and ('%' in res.original_sentence or res.real_value < 0) else ("{:,}".format(res.real_value) if res.real_value is number else res.real_value) }}
+                                                {% if '%' in res.original_sentence %}%{% endif %}
+                                            </span>
+                                        {% else %}
+                                            <span class="real-val real-val-unclear">N/A</span>
+                                        {% endif %}
+                                    </td>
+
+                                    <!-- 5. Evidence Explanation -->
+                                    <td>
+                                        <div class="evidence-cell">
+                                            {{ res.evidence }}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                    No claims available to verify. Please upload a dataset and extract claims first.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        EvidenceLock &bull; Automated Business Report Fact-Checking Hackathon Project
+    </footer>
+
+</body>
+</html>
