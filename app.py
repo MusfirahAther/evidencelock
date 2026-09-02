@@ -1,29 +1,73 @@
 import os
 import io
+import tempfile
 import pandas as pd
 from flask import Flask, render_template, request, flash, redirect, url_for, Response
 
-# Import our custom modules for extraction, verification, and report correction
+# Import custom modules for claim extraction and verification
 from claim_extractor import extract_claims
 from verifier import verify_claim, generate_corrected_report
 
 # -------------------------------------------------------------
-# 1. Initialize the Flask Application
-# We configure the app, secret key, and local upload storage.
+# 1. Base Paths & Flask App Configuration
+# We explicitly set the template_folder path to ensure Vercel's
+# serverless environment can locate the HTML templates reliably.
 # -------------------------------------------------------------
-app = Flask(__name__)
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+DEFAULT_CSV_PATH = os.path.join(BASE_DIR, "samplesuperstore.csv")
+DEFAULT_REPORT_PATH = os.path.join(BASE_DIR, "sample_report.txt")
+
+# Temporary in-memory / /tmp storage path for serverless compatibility
+TEMP_CSV_PATH = os.path.join(tempfile.gettempdir(), "evidencelock_active.csv")
+
+app = Flask(__name__, template_folder=TEMPLATES_DIR)
 app.secret_key = "evidencelock-hackathon-secret-key"
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-ACTIVE_CSV_PATH = os.path.join(UPLOAD_FOLDER, "active_dataset.csv")
-
-# Only allow CSV file uploads
 ALLOWED_EXTENSIONS = {"csv"}
+
+# Fallback sample report text if file reading is restricted
+FALLBACK_REPORT_TEXT = """QUARTERLY SALES PERFORMANCE REPORT
+Superstore Business Summary
+
+Overview:
+This report summarizes our sales performance based on recent order data. Below are the key highlights from our analysis.
+
+1. Revenue Growth
+Revenue increased by 18% in the most recent month compared to the previous month.
+
+2. Regional Performance
+The West region had the highest total sales among all regions.
+
+3. Order Volume
+We processed a total of 5,000 orders during the reported period.
+
+4. Category Performance
+The Technology category generated the highest average profit per order.
+
+5. Customer Segment
+Corporate customers placed more orders than Consumer customers.
+
+6. Discount Impact
+Products with discounts above 20% still generated positive profit on average.
+
+7. Top Performing Product
+Office Supplies had the lowest total sales compared to other categories.
+
+8. Shipping Performance
+Standard Class was the most frequently used shipping mode.
+
+9. Yearly Trend
+Overall annual sales grew by 25% compared to the previous year.
+
+10. General Statement
+Our business continues to grow steadily across all regions and categories, driven by consistent customer demand and expanding market reach."""
 
 
 # -------------------------------------------------------------
-# 2. Helper Functions
+# 2. Serverless-Safe Helper Functions
+# Handles data streams in-memory and gracefully falls back to
+# bundled dataset files when running in read-only environments.
 # -------------------------------------------------------------
 def allowed_file(filename):
     """Checks if the uploaded file has a .csv extension."""
@@ -32,34 +76,44 @@ def allowed_file(filename):
 
 def get_active_dataframe():
     """
-    Loads the active dataset. If a user previously uploaded a CSV,
-    it loads that one. Otherwise, it defaults to samplesuperstore.csv.
+    Safely retrieves the active DataFrame:
+    1. Checks the writable /tmp cache (if user uploaded a custom CSV).
+    2. Falls back to bundled samplesuperstore.csv in project root.
     """
-    if os.path.exists(ACTIVE_CSV_PATH):
+    # 1. Try reading temporary uploaded dataset from /tmp
+    if os.path.exists(TEMP_CSV_PATH):
         try:
-            return pd.read_csv(ACTIVE_CSV_PATH), "Uploaded CSV (active)"
+            return pd.read_csv(TEMP_CSV_PATH), "Uploaded CSV (active session)"
         except Exception:
             pass
 
-    default_path = os.path.join(os.path.dirname(__file__), "samplesuperstore.csv")
-    if os.path.exists(default_path):
-        return pd.read_csv(default_path), "samplesuperstore.csv (default)"
+    # 2. Try reading bundled default dataset
+    if os.path.exists(DEFAULT_CSV_PATH):
+        try:
+            return pd.read_csv(DEFAULT_CSV_PATH), "samplesuperstore.csv (default)"
+        except Exception:
+            pass
 
-    return None, "No dataset found"
+    return None, "No dataset available"
 
 
 def get_report_text():
-    """Reads the default sample_report.txt file from disk."""
-    report_file_path = os.path.join(os.path.dirname(__file__), "sample_report.txt")
-    if os.path.exists(report_file_path):
-        with open(report_file_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return ""
+    """
+    Reads sample_report.txt from disk, falling back to embedded
+    text if the filesystem cannot be accessed.
+    """
+    if os.path.exists(DEFAULT_REPORT_PATH):
+        try:
+            with open(DEFAULT_REPORT_PATH, "r", encoding="utf-8") as f:
+                return f.read()
+        except Exception:
+            pass
+
+    return FALLBACK_REPORT_TEXT
 
 
 # -------------------------------------------------------------
-# 3. Route 1: Homepage & CSV Data Ingestion (Step 1)
-# - Displays upload form and previews first 5 rows of data
+# 3. Route 1: Homepage & CSV Ingestion (Step 1)
 # -------------------------------------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -79,14 +133,19 @@ def index():
             return redirect(request.url)
 
         try:
-            # Read CSV and cache locally for all downstream verification steps
-            df = pd.read_csv(file)
+            # Read CSV directly from memory stream (works in serverless environments)
+            file_bytes = file.read()
+            df = pd.read_csv(io.BytesIO(file_bytes))
 
             if df.empty:
                 flash("The uploaded CSV file is empty. Please upload a dataset with data rows.", "warning")
                 return redirect(request.url)
 
-            df.to_csv(ACTIVE_CSV_PATH, index=False)
+            # Safely attempt to cache in /tmp for subsequent verification steps
+            try:
+                df.to_csv(TEMP_CSV_PATH, index=False)
+            except Exception:
+                pass  # If /tmp is restricted, operations continue in-memory
 
             total_rows = len(df)
             total_columns = len(df.columns)
@@ -115,7 +174,6 @@ def index():
 
 # -------------------------------------------------------------
 # 4. Route 2: Claim Extraction Engine (Step 2)
-# - Scans report text and identifies checkable numeric claims
 # -------------------------------------------------------------
 @app.route("/extract-claims", methods=["GET", "POST"])
 def extract_claims_page():
@@ -139,7 +197,6 @@ def extract_claims_page():
 
 # -------------------------------------------------------------
 # 5. Route 3: Claim Verification Engine (Step 3)
-# - Connects extracted claims with real dataset calculations
 # -------------------------------------------------------------
 @app.route("/verify-claims", methods=["GET", "POST"])
 def verify_claims_page():
@@ -188,9 +245,6 @@ def verify_claims_page():
 
 # -------------------------------------------------------------
 # 6. Route 4: Final Corrected Report & Summary Dashboard (Step 4)
-# - Generates corrected report text with accurate calculations
-# - Displays before/after side-by-side comparison
-# - Displays accuracy rate and verdict breakdown charts
 # -------------------------------------------------------------
 @app.route("/results-dashboard", methods=["GET", "POST"])
 def results_dashboard():
@@ -202,28 +256,21 @@ def results_dashboard():
         if custom_text:
             original_report_text = custom_text
 
-    # Extract claims and verify against data
     extracted_claims = extract_claims(original_report_text) if original_report_text else []
     verification_results = []
     if df is not None:
         for claim in extracted_claims:
             verification_results.append(verify_claim(claim, df))
 
-    # Generate the corrected report using our verifier function
     corrected_report_text = generate_corrected_report(original_report_text, verification_results)
 
-    # Compute metric counts
     total_claims = len(verification_results)
     correct_count = sum(1 for r in verification_results if r["verdict"] == "CORRECT")
     wrong_count = sum(1 for r in verification_results if r["verdict"] == "WRONG")
     unclear_count = sum(1 for r in verification_results if r["verdict"] == "UNCLEAR")
 
-    # Accuracy Rate calculation: % of claims marked CORRECT out of evaluated claims (excluding UNCLEAR)
     evaluated_claims = correct_count + wrong_count
-    if evaluated_claims > 0:
-        accuracy_rate = round((correct_count / evaluated_claims) * 100, 1)
-    else:
-        accuracy_rate = 0.0
+    accuracy_rate = round((correct_count / evaluated_claims) * 100, 1) if evaluated_claims > 0 else 0.0
 
     return render_template(
         "results_dashboard.html",
@@ -241,7 +288,8 @@ def results_dashboard():
 
 
 # -------------------------------------------------------------
-# 7. Route 5: Download Corrected Report as .txt file
+# 7. Route 5: In-Memory Download of Corrected Report (.txt)
+# Generates the file stream directly in memory without disk access.
 # -------------------------------------------------------------
 @app.route("/download-corrected-report")
 def download_corrected_report():
@@ -256,7 +304,7 @@ def download_corrected_report():
 
     corrected_report_text = generate_corrected_report(original_report_text, verification_results)
 
-    # Create downloadable text response
+    # In-memory stream response
     return Response(
         corrected_report_text,
         mimetype="text/plain",
@@ -268,7 +316,7 @@ def download_corrected_report():
 
 
 # -------------------------------------------------------------
-# 8. Application Entry Point
+# 8. Local Application Entry Point
 # -------------------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
