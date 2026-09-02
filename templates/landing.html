@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EvidenceLock — Don't Just Trust the Report. Verify It.</title>
+  <meta name="description" content="EvidenceLock automatically re-calculates every number in a business report against real source data — catching false claims before they drive bad decisions.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --indigo:      #4f46e5;
+      --indigo-dark: #3730a3;
+      --indigo-xdark:#1e1b4b;
+      --indigo-light:#eef2ff;
+      --indigo-mid:  #c7d2fe;
+      --violet:      #7c3aed;
+      --surface:     #ffffff;
+      --bg:          #f9fafb;
+      --text:        #0f172a;
+      --muted:       #64748b;
+      --border:      #e2e8f0;
+      --correct:     #10b981;
+      --wrong:       #ef4444;
+      --unclear:     #f59e0b;
+      --font-serif:  'Instrument Serif', Georgia, serif;
+      --font-sans:   'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-mono:   'JetBrains Mono', 'Courier New', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-sans); background: var(--surface); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 1.5rem; }
+    .tag { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.35rem 0.85rem; border-radius: 9999px; }
+
+    /* NAV */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: rgba(255,255,255,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+    .nav-brand { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; }
+    .nav-lock { width: 34px; height: 34px; background: linear-gradient(135deg, var(--indigo) 0%, var(--violet) 100%); border-radius: 9px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.05rem; box-shadow: 0 4px 10px rgba(79,70,229,0.35); flex-shrink: 0; }
+    .nav-wordmark { font-size: 1.1rem; font-weight: 800; color: var(--indigo-xdark); letter-spacing: -0.02em; }
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .nav-ghost { font-size: 0.875rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.2s; }
+    .nav-ghost:hover { color: var(--indigo); }
+    .btn-cta { display: inline-flex; align-items: center; gap: 0.45rem; background: linear-gradient(135deg, var(--indigo) 0%, var(--violet) 100%); color: white; font-weight: 700; font-size: 0.875rem; padding: 0.55rem 1.3rem; border-radius: 10px; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(79,70,229,0.35); transition: transform 0.18s ease, box-shadow 0.18s ease; }
+    .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79,70,229,0.45); }
+    .btn-cta-lg { font-size: 1.05rem; padding: 0.85rem 2.2rem; border-radius: 14px; box-shadow: 0 6px 20px rgba(79,70,229,0.4); }
+
+    /* HERO */
+    .hero { padding: 8rem 0 5rem; position: relative; overflow: hidden; background: var(--surface); }
+    .hero::before { content: ''; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 44px 44px; opacity: 0.4; pointer-events: none; }
+    .hero::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 200px; background: linear-gradient(to bottom, transparent, var(--surface)); pointer-events: none; }
+    .hero-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+    .hero-eyebrow { background: var(--indigo-light); color: var(--indigo); border: 1px solid var(--indigo-mid); margin-bottom: 1.4rem; }
+    .hero-headline { font-family: var(--font-serif); font-size: clamp(2.4rem, 5vw, 3.75rem); line-height: 1.1; letter-spacing: -0.02em; color: var(--indigo-xdark); margin-bottom: 1.4rem; }
+    .hero-headline em { font-style: italic; color: var(--indigo); }
+    .hero-sub { font-size: 1.1rem; color: var(--muted); max-width: 440px; margin-bottom: 2.2rem; line-height: 1.65; }
+    .hero-actions { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+    .btn-ghost-lg { font-size: 0.95rem; font-weight: 600; color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; transition: color 0.2s; }
+    .btn-ghost-lg:hover { color: var(--indigo); }
+    .hero-right { position: relative; display: flex; justify-content: center; }
+    .evidence-card { background: white; border: 1.5px solid var(--border); border-radius: 18px; box-shadow: 0 24px 60px rgba(15,23,42,0.12), 0 4px 16px rgba(79,70,229,0.08); padding: 1.5rem; width: 100%; max-width: 440px; position: relative; }
+    .ec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .ec-title { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .ec-badge { font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.7rem; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .ec-badge-live { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .ec-claim { font-size: 0.9rem; font-style: italic; color: #334155; background: #f8fafc; border-left: 3px solid var(--indigo-mid); border-radius: 0 6px 6px 0; padding: 0.7rem 1rem; margin-bottom: 1rem; line-height: 1.5; }
+    .ec-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+    .ec-cell { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.75rem; }
+    .ec-cell-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 0.25rem; }
+    .ec-cell-value { font-family: var(--font-mono); font-size: 1.05rem; font-weight: 700; color: var(--text); }
+    .ec-verdict { display: flex; align-items: center; gap: 0.6rem; padding: 0.7rem 1rem; border-radius: 10px; font-size: 0.875rem; font-weight: 700; }
+    .ec-verdict-wrong { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .ec-evidence { margin-top: 0.75rem; font-size: 0.8rem; color: var(--muted); background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.85rem; font-family: var(--font-mono); line-height: 1.5; }
+    .hero-float-badge { position: absolute; top: -14px; right: -14px; background: linear-gradient(135deg, var(--indigo), var(--violet)); color: white; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.4rem 0.9rem; border-radius: 9999px; box-shadow: 0 4px 12px rgba(79,70,229,0.4); }
+
+    /* SECTIONS */
+    section { padding: 5.5rem 0; }
+    .section-heading { font-family: var(--font-serif); font-size: clamp(1.9rem, 4vw, 2.75rem); line-height: 1.15; letter-spacing: -0.02em; color: var(--indigo-xdark); margin-bottom: 0.85rem; }
+    .section-sub { font-size: 1.05rem; color: var(--muted); line-height: 1.65; max-width: 560px; }
+
+    /* PROBLEM */
+    .problem { background: var(--indigo-xdark); color: white; position: relative; overflow: hidden; }
+    .problem::before { content: ''; position: absolute; top: -180px; right: -180px; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(124,58,237,0.25) 0%, transparent 70%); pointer-events: none; }
+    .problem-inner { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: start; }
+    .problem .section-tag { background: rgba(255,255,255,0.1); color: #c7d2fe; border: 1px solid rgba(199,210,254,0.3); }
+    .problem .section-heading { color: white; }
+    .problem .section-sub { color: #94a3b8; max-width: 100%; }
+    .problem-points { margin-top: 2rem; display: flex; flex-direction: column; gap: 1rem; }
+    .problem-point { display: flex; gap: 1rem; align-items: flex-start; }
+    .pp-icon { width: 36px; height: 36px; border-radius: 9px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .pp-text { font-size: 0.93rem; color: #cbd5e1; line-height: 1.55; }
+    .pp-text strong { color: white; }
+    .example-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 1.75rem; }
+    .ex-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #94a3b8; margin-bottom: 1.25rem; }
+    .ex-report-text { font-style: italic; font-size: 1.05rem; color: #e2e8f0; line-height: 1.6; margin-bottom: 1.5rem; border-left: 3px solid rgba(199,210,254,0.4); padding-left: 1rem; }
+    .ex-claim-highlight { color: #fca5a5; font-weight: 700; font-style: normal; }
+    .ex-divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 1.25rem 0; }
+    .ex-result-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .ex-result-cell { padding: 1rem; border-radius: 10px; }
+    .ex-result-claimed { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); }
+    .ex-result-real { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.25); }
+    .ex-r-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.4rem; }
+    .ex-result-claimed .ex-r-label { color: #fca5a5; }
+    .ex-result-real .ex-r-label { color: #6ee7b7; }
+    .ex-r-value { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 700; line-height: 1; margin-bottom: 0.3rem; }
+    .ex-result-claimed .ex-r-value { color: #f87171; }
+    .ex-result-real .ex-r-value { color: #34d399; }
+    .ex-r-note { font-size: 0.75rem; opacity: 0.65; color: white; }
+
+    /* HOW IT WORKS */
+    .how { background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .how-header { text-align: center; margin-bottom: 3.5rem; }
+    .how-header .section-sub { margin: 0 auto; }
+    .how-tag { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
+    .steps-grid::before { content: ''; position: absolute; top: 28px; left: calc(12.5% + 20px); right: calc(12.5% + 20px); height: 2px; background: linear-gradient(to right, var(--indigo-mid), var(--indigo), var(--violet)); opacity: 0.4; }
+    .step { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 1.25rem; position: relative; }
+    .step-num { width: 56px; height: 56px; border-radius: 50%; background: white; border: 2px solid var(--indigo-mid); display: flex; align-items: center; justify-content: center; font-size: 1.4rem; margin-bottom: 1.1rem; position: relative; z-index: 1; box-shadow: 0 4px 12px rgba(79,70,229,0.12); transition: transform 0.2s, box-shadow 0.2s; }
+    .step:hover .step-num { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(79,70,229,0.22); border-color: var(--indigo); }
+    .step-n { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; background: var(--indigo); border-radius: 50%; font-size: 0.65rem; font-weight: 800; color: white; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); }
+    .step-title { font-size: 0.95rem; font-weight: 800; color: var(--text); margin-bottom: 0.4rem; }
+    .step-desc { font-size: 0.82rem; color: var(--muted); line-height: 1.55; }
+
+    /* WHY */
+    .why { background: var(--surface); }
+    .why-header { display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items: end; margin-bottom: 3.5rem; }
+    .why-tag { background: #fdf4ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+    .why-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+    .why-card { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s; }
+    .why-card:hover { box-shadow: 0 12px 32px rgba(79,70,229,0.1); transform: translateY(-3px); border-color: var(--indigo-mid); }
+    .wc-icon { font-size: 1.75rem; margin-bottom: 1rem; }
+    .wc-title { font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem; }
+    .wc-body { font-size: 0.875rem; color: var(--muted); line-height: 1.6; }
+
+    /* DEMO */
+    .demo { background: var(--indigo-xdark); position: relative; overflow: hidden; }
+    .demo::after { content: ''; position: absolute; bottom: -200px; left: -200px; width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(79,70,229,0.25) 0%, transparent 70%); pointer-events: none; }
+    .demo-inner { position: relative; z-index: 1; }
+    .demo-header { text-align: center; margin-bottom: 3rem; }
+    .demo-tag { background: rgba(255,255,255,0.1); color: #c7d2fe; border: 1px solid rgba(199,210,254,0.3); }
+    .demo .section-heading { color: white; }
+    .demo .section-sub { color: #94a3b8; margin: 0 auto; }
+    .demo-table-wrap { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 32px 80px rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); }
+    .demo-table-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; background: #f8fafc; border-bottom: 1px solid var(--border); }
+    .demo-table-title { font-size: 0.85rem; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 0.5rem; }
+    .demo-table-meta { font-size: 0.75rem; font-family: var(--font-mono); color: var(--muted); display: flex; align-items: center; gap: 0.75rem; }
+    table.demo-tbl { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .demo-tbl thead { background: #f8fafc; }
+    .demo-tbl th { padding: 0.85rem 1.25rem; text-align: left; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); border-bottom: 2px solid var(--border); }
+    .demo-tbl td { padding: 0.95rem 1.25rem; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: middle; }
+    .demo-tbl tbody tr:last-child td { border-bottom: none; }
+    .demo-tbl tbody tr:hover { background: #fafbfc; }
+    .vbadge { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.7rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+    .vb-correct { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .vb-wrong { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    .mono-val { font-family: var(--font-mono); font-weight: 700; font-size: 0.9rem; }
+    .mono-correct { color: #059669; }
+    .mono-wrong { color: #dc2626; }
+    .ev-text { font-size: 0.8rem; color: #475569; background: #f8fafc; border: 1px solid var(--border); border-radius: 6px; padding: 0.4rem 0.65rem; line-height: 1.45; max-width: 340px; }
+    .claim-text { font-weight: 500; color: #1e293b; max-width: 280px; }
+    .demo-cta { text-align: center; margin-top: 2.5rem; }
+
+    /* FOOTER */
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 2.5rem 0; }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.25rem; }
+    .footer-brand { display: flex; align-items: center; gap: 0.6rem; }
+    .footer-lock { width: 30px; height: 30px; background: linear-gradient(135deg, var(--indigo), var(--violet)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; }
+    .footer-name { font-size: 0.95rem; font-weight: 800; color: var(--indigo-xdark); }
+    .footer-tagline { font-size: 0.8rem; color: var(--muted); margin-top: 0.2rem; }
+    .footer-links { display: flex; align-items: center; gap: 1.5rem; }
+    .footer-link { font-size: 0.85rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.2s; display: inline-flex; align-items: center; gap: 0.35rem; }
+    .footer-link:hover { color: var(--indigo); }
+    .footer-note { font-size: 0.78rem; color: #94a3b8; }
+
+    /* RESPONSIVE */
+    @media (max-width: 1024px) {
+      .hero-inner { grid-template-columns: 1fr; gap: 3rem; }
+      .evidence-card { max-width: 500px; margin: 0 auto; }
+      .problem-inner { grid-template-columns: 1fr; gap: 2.5rem; }
+      .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 2rem; }
+      .steps-grid::before { display: none; }
+      .why-header { grid-template-columns: 1fr; gap: 1.5rem; }
+      .why-cards { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      nav .nav-ghost { display: none; }
+      .hero { padding: 6rem 0 4rem; }
+      .why-cards { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr 1fr; }
+      .footer-inner { flex-direction: column; align-items: flex-start; }
+      .footer-links { flex-wrap: wrap; gap: 1rem; }
+      .demo-table-meta { display: none; }
+      .demo-tbl th:nth-child(4), .demo-tbl td:nth-child(4) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="nav-brand">
+          <div class="nav-lock">🔒</div>
+          <span class="nav-wordmark">EvidenceLock</span>
+        </a>
+        <div class="nav-right">
+          <a href="#how-it-works" class="nav-ghost">How it works</a>
+          <a href="https://github.com/MusfirahAther/evidencelock" target="_blank" class="nav-ghost">GitHub</a>
+          <a href="/app" class="btn-cta">Try the Tool &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-inner">
+        <div class="hero-left">
+          <span class="tag hero-eyebrow">&#x26A1; Hackathon Project &middot; EvidenceLock</span>
+          <h1 class="hero-headline">
+            Don't just read<br>the report &mdash;<br><em>verify the math.</em>
+          </h1>
+          <p class="hero-sub">
+            EvidenceLock re-calculates every number in a business report
+            from the real source data, and shows you exactly which claims
+            are accurate, exaggerated, or impossible to verify.
+          </p>
+          <div class="hero-actions">
+            <a href="/app" class="btn-cta btn-cta-lg">&#x1F50D; Try EvidenceLock</a>
+            <a href="#how-it-works" class="btn-ghost-lg">See how it works &darr;</a>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="evidence-card">
+            <span class="hero-float-badge">Live Audit Result</span>
+            <div class="ec-header">
+              <span class="ec-title">Verification Engine Output</span>
+              <span class="ec-badge ec-badge-live">&#x25CF; Active</span>
+            </div>
+            <div class="ec-claim">
+              &ldquo;Revenue increased by <strong>18%</strong> in the most recent
+              month compared to the previous month.&rdquo;
+            </div>
+            <div class="ec-row">
+              <div class="ec-cell">
+                <div class="ec-cell-label">Claimed</div>
+                <div class="ec-cell-value" style="color:#dc2626;">18%</div>
+              </div>
+              <div class="ec-cell">
+                <div class="ec-cell-label">Actual</div>
+                <div class="ec-cell-value" style="color:#059669;">+12.4%</div>
+              </div>
+              <div class="ec-cell">
+                <div class="ec-cell-label">Gap</div>
+                <div class="ec-cell-value" style="color:#d97706;">&minus;5.6pp</div>
+              </div>
+            </div>
+            <div class="ec-verdict ec-verdict-wrong">
+              &#x274C; WRONG &mdash; Overstated by 5.6 percentage points
+            </div>
+            <div class="ec-evidence">
+              Calculated from Nov 2024 Revenue ($218,340) to<br>
+              Dec 2024 Revenue ($245,450) &rarr; +12.40% real growth.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROBLEM -->
+  <section class="problem">
+    <div class="container">
+      <div class="problem-inner">
+        <div>
+          <span class="tag section-tag" style="margin-bottom:1rem;display:inline-flex;">The Problem</span>
+          <h2 class="section-heading">Business reports are trusted &mdash; but rarely verified.</h2>
+          <p class="section-sub">
+            Quarterly summaries, investor updates, and team reports are full of numbers
+            that look authoritative but are never checked against the raw data.
+            Wrong date ranges, stale figures, rounding errors &mdash; they all slip through.
+          </p>
+          <div class="problem-points">
+            <div class="problem-point">
+              <div class="pp-icon">&#x1F4C5;</div>
+              <p class="pp-text"><strong>Wrong time windows.</strong> A &ldquo;monthly&rdquo; comparison that actually spans 47 days overstates growth by design.</p>
+            </div>
+            <div class="problem-point">
+              <div class="pp-icon">&#x1F522;</div>
+              <p class="pp-text"><strong>Cherry-picked figures.</strong> Reporting on the best-performing segment while ignoring the rest skews the picture.</p>
+            </div>
+            <div class="problem-point">
+              <div class="pp-icon">&#x1F4CA;</div>
+              <p class="pp-text"><strong>Silent calculation errors.</strong> A percentage rounded up by just 2&ndash;5 points leads to entirely different budget decisions.</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="example-card">
+            <div class="ex-label">Real example &mdash; From a Q4 sales report</div>
+            <div class="ex-report-text">
+              &ldquo;Revenue increased by <span class="ex-claim-highlight">18%</span> in the most
+              recent month compared to the previous month, demonstrating strong
+              year-end momentum across all regions.&rdquo;
+            </div>
+            <div class="ex-label">EvidenceLock recalculates from source CSV:</div>
+            <hr class="ex-divider">
+            <div class="ex-result-row">
+              <div class="ex-result-cell ex-result-claimed">
+                <div class="ex-r-label">Report claims</div>
+                <div class="ex-r-value">+18%</div>
+                <div class="ex-r-note">As written in the report</div>
+              </div>
+              <div class="ex-result-cell ex-result-real">
+                <div class="ex-r-label">Real calculation</div>
+                <div class="ex-r-value">+12.4%</div>
+                <div class="ex-r-note">Verified from raw data</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how-it-works">
+    <div class="container">
+      <div class="how-header">
+        <span class="tag how-tag" style="margin-bottom:1rem;display:inline-flex;">How It Works</span>
+        <h2 class="section-heading">Four steps from report to evidence.</h2>
+        <p class="section-sub">No spreadsheets. No manual checking. EvidenceLock does the math for you.</p>
+      </div>
+      <div class="steps-grid">
+        <div class="step">
+          <div class="step-num">&#x1F4CA;<span class="step-n">1</span></div>
+          <div class="step-title">Upload Your Data</div>
+          <p class="step-desc">Drop in any CSV file &mdash; sales records, order data, financial exports. It becomes your ground truth.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">&#x1F4C4;<span class="step-n">2</span></div>
+          <div class="step-title">Add Your Report</div>
+          <p class="step-desc">Paste the report text or upload a .txt file. EvidenceLock scans it for every checkable number claim.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">&#x2696;&#xFE0F;<span class="step-n">3</span></div>
+          <div class="step-title">Verify Claims</div>
+          <p class="step-desc">Each claim is re-calculated from the source CSV. The engine shows claimed vs. real and marks the verdict.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">&#x1F4CB;<span class="step-n">4</span></div>
+          <div class="step-title">Get the Evidence</div>
+          <p class="step-desc">Download a corrected report with wrong numbers replaced by real ones, ready to share or present.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY IT MATTERS -->
+  <section class="why">
+    <div class="container">
+      <div class="why-header">
+        <div>
+          <span class="tag why-tag" style="margin-bottom:1rem;display:inline-flex;">Why It Matters</span>
+          <h2 class="section-heading">Reading a report isn't the same as verifying it.</h2>
+        </div>
+        <p class="section-sub">
+          Every tool that summarises or visualises reports still trusts the numbers inside.
+          EvidenceLock is the first step that doesn&apos;t &mdash; it re-does the math and shows its work.
+        </p>
+      </div>
+      <div class="why-cards">
+        <div class="why-card">
+          <div class="wc-icon">&#x1F501;</div>
+          <div class="wc-title">Reproduces the Calculation</div>
+          <p class="wc-body">Rather than accepting numbers at face value, EvidenceLock re-runs the calculation from the raw data &mdash; the same way an auditor would.</p>
+        </div>
+        <div class="why-card">
+          <div class="wc-icon">&#x1F9FE;</div>
+          <div class="wc-title">Shows Its Work</div>
+          <p class="wc-body">Every verdict includes exact evidence: which rows were used, what values were compared, and why the verdict was CORRECT or WRONG.</p>
+        </div>
+        <div class="why-card">
+          <div class="wc-icon">&#x1F4E5;</div>
+          <div class="wc-title">Delivers a Corrected Report</div>
+          <p class="wc-body">Wrong numbers are automatically replaced with the real calculated values and delivered as a downloadable corrected report.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMO PREVIEW -->
+  <section class="demo">
+    <div class="container">
+      <div class="demo-inner">
+        <div class="demo-header">
+          <span class="tag demo-tag" style="margin-bottom:1rem;display:inline-flex;">Live Demo Preview</span>
+          <h2 class="section-heading">This is what a verification audit looks like.</h2>
+          <p class="section-sub">Each claim gets a verdict &mdash; CORRECT, WRONG, or UNCLEAR &mdash; with real evidence calculated from your source data.</p>
+        </div>
+        <div class="demo-table-wrap">
+          <div class="demo-table-header">
+            <span class="demo-table-title">&#x2696;&#xFE0F; Verification Audit Results</span>
+            <div class="demo-table-meta">
+              <span>&#x1F4CA; samplesuperstore.csv</span>
+              <span>&middot;</span>
+              <span>3 claims checked</span>
+            </div>
+          </div>
+          <table class="demo-tbl">
+            <thead>
+              <tr>
+                <th>Claim</th>
+                <th>Verdict</th>
+                <th>Claimed &rarr; Real</th>
+                <th>Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="claim-text">&ldquo;Revenue increased by <strong>18%</strong> in the most recent month compared to the previous month.&rdquo;</td>
+                <td><span class="vbadge vb-wrong">&#x274C; Wrong</span></td>
+                <td><span class="mono-val mono-wrong">18%</span> <span style="color:#94a3b8;font-size:0.85rem;margin:0 0.25rem;">&rarr;</span> <span class="mono-val mono-correct">+12.4%</span></td>
+                <td><div class="ev-text">Nov&rarr;Dec Revenue: $218,340 &rarr; $245,450. Real growth&nbsp;=&nbsp;+12.40%.</div></td>
+              </tr>
+              <tr>
+                <td class="claim-text">&ldquo;We processed a total of <strong>5,000</strong> orders during the reported period.&rdquo;</td>
+                <td><span class="vbadge vb-wrong">&#x274C; Wrong</span></td>
+                <td><span class="mono-val mono-wrong">5,000</span> <span style="color:#94a3b8;font-size:0.85rem;margin:0 0.25rem;">&rarr;</span> <span class="mono-val mono-correct">9,994</span></td>
+                <td><div class="ev-text">Counted 9,994 distinct Order IDs across the full dataset.</div></td>
+              </tr>
+              <tr>
+                <td class="claim-text">&ldquo;Overall annual sales grew by <strong>25%</strong> compared to the previous year.&rdquo;</td>
+                <td><span class="vbadge vb-correct">&#x2705; Correct</span></td>
+                <td><span class="mono-val" style="color:#94a3b8;">25%</span> <span style="color:#94a3b8;font-size:0.85rem;margin:0 0.25rem;">&rarr;</span> <span class="mono-val mono-correct">+27.1%</span></td>
+                <td><div class="ev-text">YoY Sales: $609,205 &rarr; $733,215. Growth = +27.1% (within &plusmn;5% tolerance).</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="demo-cta">
+          <a href="/app" class="btn-cta btn-cta-lg">&#x1F512; Run Your Own Audit &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div>
+          <div class="footer-brand">
+            <div class="footer-lock">&#x1F512;</div>
+            <span class="footer-name">EvidenceLock</span>
+          </div>
+          <div class="footer-tagline">Automated business report fact-checking &mdash; built with Python, Flask &amp; Pandas.</div>
+        </div>
+        <div class="footer-links">
+          <a href="/app" class="footer-link">&#x1F680; Open Tool</a>
+          <a href="https://github.com/MusfirahAther/evidencelock" target="_blank" class="footer-link">&#x2B50; GitHub</a>
+        </div>
+        <div class="footer-note">Built for a Hackathon &middot; Open Source</div>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

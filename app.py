@@ -171,9 +171,18 @@ def get_current_dataframe():
 
 
 # -------------------------------------------------------------
-# 3. Route 1: Homepage & CSV Data Ingestion (Step 1)
+# 3. Route: Landing Page (public-facing entry point)
 # -------------------------------------------------------------
-@app.route("/", methods=["GET", "POST"])
+@app.route("/")
+def landing():
+    return render_template("landing.html")
+
+
+# -------------------------------------------------------------
+# 4. Route: CSV Data Ingestion Tool (Step 1)
+# Moved from "/" to "/app" to make room for the landing page.
+# -------------------------------------------------------------
+@app.route("/app", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
         if "csv_file" not in request.files:
