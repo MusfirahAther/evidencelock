@@ -1,5 +1,11 @@
 import re
 
+MONTH_NAME_PATTERN = (
+    r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|"
+    r"jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|"
+    r"oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+)
+
 # -------------------------------------------------------------
 # 1. Helper Function: parse_number
 # Cleans numeric text (removes commas like "5,000") and converts
@@ -35,10 +41,11 @@ def extract_time_period(sentence):
     # - Matches specific periods: 'during the reported period', 'in 2023', 'in Q3'
     # - Matches relative years: 'compared to the previous year', 'last year'
     time_patterns = [
+        rf'(?:in|during|for|over)\s+(?:the\s+)?{MONTH_NAME_PATTERN}(?:\s+compared\s+to\s+(?:the\s+)?{MONTH_NAME_PATTERN})?',
         r'(?:in|during|for|over)\s+(?:the\s+)?(?:most\s+recent\s+month|reported\s+period|last\s+(?:year|quarter|month)|previous\s+(?:year|quarter|month)|past\s+\w+|\d{4}|Q[1-4])(?:\s+compared\s+to\s+(?:the\s+)?(?:previous|last)\s+(?:month|year|quarter))?',
         r'compared\s+to\s+(?:the\s+)?(?:previous|last)\s+(?:year|quarter|month)',
         r'(?:most\s+recent|previous|last)\s+(?:month|year|quarter)',
-        r'\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\b'
+        rf'\b{MONTH_NAME_PATTERN}\b'
     ]
 
     for pattern in time_patterns:

@@ -8,6 +8,7 @@ from flask import Flask, render_template, request, flash, redirect, url_for, Res
 # Import custom modules for claim extraction, verification, and report correction
 from claim_extractor import extract_claims
 from verifier import verify_claim, generate_corrected_report
+from report_generator import generate_verification_report
 
 # -------------------------------------------------------------
 # 1. Base Paths & Flask App Configuration
@@ -23,6 +24,7 @@ app.secret_key = "evidencelock-hackathon-secret-key"
 
 ALLOWED_CSV_EXTENSIONS = {"csv"}
 ALLOWED_TXT_EXTENSIONS = {"txt", "md"}
+SESSION_REPORT_MAX_CHARS = 2000
 
 # In-memory session caches to support serverless stateless invocations
 REPORT_CACHE = {}
@@ -96,11 +98,20 @@ def get_default_sample_report():
     return FALLBACK_SAMPLE_REPORT
 
 
-def set_current_report(text, source_label="Custom Report"):
-    """Saves the active report text in memory and session cache."""
+def set_current_report(text, source_label="Custom Report", is_custom=True):
+    """Saves the active report text with durable fallbacks for the current browser session."""
     sid = get_session_id()
     REPORT_CACHE[sid] = text
     session["report_source"] = source_label
+    session["has_custom_report"] = is_custom
+
+    # Keep typical report uploads in the signed session cookie so a process reload
+    # cannot silently replace the user's report with the bundled sample.
+    if len(text) <= SESSION_REPORT_MAX_CHARS:
+        session["report_text"] = text
+    else:
+        session.pop("report_text", None)
+
     try:
         report_tmp = os.path.join(tempfile.gettempdir(), f"report_{sid}.txt")
         with open(report_tmp, "w", encoding="utf-8") as f:
@@ -119,6 +130,10 @@ def get_current_report():
     if sid in REPORT_CACHE and REPORT_CACHE[sid]:
         return REPORT_CACHE[sid], session.get("report_source", "Custom Report")
 
+    session_report = session.get("report_text", "")
+    if session_report:
+        return session_report, session.get("report_source", "Custom Report")
+
     report_tmp = os.path.join(tempfile.gettempdir(), f"report_{sid}.txt")
     if os.path.exists(report_tmp):
         try:
@@ -126,6 +141,11 @@ def get_current_report():
                 return f.read(), session.get("report_source", "Custom Report")
         except Exception:
             pass
+
+    # Do not present the sample as if it were a user's report after a custom
+    # upload was selected but its large temporary payload became unavailable.
+    if session.get("has_custom_report"):
+        return "", session.get("report_source", "Custom Report")
 
     # Default to sample report
     sample_text = get_default_sample_report()
@@ -275,7 +295,7 @@ def extract_claims_page():
         if action == "load_sample":
             report_text = get_default_sample_report()
             report_source = "sample_report.txt (Sample Demo)"
-            set_current_report(report_text, report_source)
+            set_current_report(report_text, report_source, is_custom=False)
             flash("Loaded sample quarterly sales report!", "info")
 
         # Option B: User uploaded a .txt report file
@@ -287,7 +307,7 @@ def extract_claims_page():
                     if uploaded_content:
                         report_text = uploaded_content
                         report_source = f"Uploaded File: {file.filename}"
-                        set_current_report(report_text, report_source)
+                        set_current_report(report_text, report_source, is_custom=True)
                         flash(f"Uploaded and extracted claims from {file.filename}!", "success")
                     else:
                         flash("The uploaded text file is empty.", "warning")
@@ -302,7 +322,7 @@ def extract_claims_page():
             if pasted_text:
                 report_text = pasted_text
                 report_source = "Custom Pasted Text"
-                set_current_report(report_text, report_source)
+                set_current_report(report_text, report_source, is_custom=True)
                 flash("Extracted claims from your pasted report text!", "success")
 
     # Extract claims from the currently active report
@@ -442,7 +462,32 @@ def download_corrected_report():
 
 
 # -------------------------------------------------------------
-# 8. Local Application Entry Point
+# 8. Route 6: In-Memory Download of Complete Verification PDF
+# -------------------------------------------------------------
+@app.route("/download-verification-report")
+def download_verification_report():
+    """Creates a complete audit PDF for the report and dataset active in this session."""
+    df, dataset_name = get_current_dataframe()
+    report_text, report_source = get_current_report()
+    extracted_claims = extract_claims(report_text) if report_text else []
+    verification_results = [verify_claim(claim, df) for claim in extracted_claims] if df is not None else []
+    corrected_report_text = generate_corrected_report(report_text, verification_results)
+    pdf_bytes = generate_verification_report(
+        dataset_name=dataset_name,
+        report_source=report_source,
+        verification_results=verification_results,
+        corrected_report_text=corrected_report_text,
+    )
+
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": "attachment;filename=evidencelock_verification_report.pdf"},
+    )
+
+
+# -------------------------------------------------------------
+# 9. Local Application Entry Point
 # -------------------------------------------------------------
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

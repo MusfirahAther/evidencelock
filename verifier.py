@@ -2,6 +2,15 @@ import re
 import pandas as pd
 import numpy as np
 
+MONTH_NAME_TO_NUMBER = {
+    "jan": 1, "january": 1, "feb": 2, "february": 2,
+    "mar": 3, "march": 3, "apr": 4, "april": 4, "may": 5,
+    "jun": 6, "june": 6, "jul": 7, "july": 7, "aug": 8, "august": 8,
+    "sep": 9, "sept": 9, "september": 9, "oct": 10, "october": 10,
+    "nov": 11, "november": 11, "dec": 12, "december": 12,
+}
+MONTH_NAME_PATTERN = r"(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)"
+
 # -------------------------------------------------------------
 # 1. Helper Function: find_column
 # Safely locates a column in the DataFrame by doing case-insensitive
@@ -19,6 +28,27 @@ def find_column(df, candidates):
         if cand_clean in cols_map:
             return cols_map[cand_clean]
     return None
+
+
+def extract_named_month_comparison(text):
+    """Return stated current and previous month numbers, or a month and its calendar predecessor."""
+    match = re.search(
+        rf"\b(?P<current>{MONTH_NAME_PATTERN})\b\s+compared\s+to\s+(?:the\s+)?\b(?P<previous>{MONTH_NAME_PATTERN})\b",
+        text,
+        re.IGNORECASE,
+    )
+    if match:
+        return (
+            MONTH_NAME_TO_NUMBER[match.group("current").lower()],
+            MONTH_NAME_TO_NUMBER[match.group("previous").lower()],
+        )
+
+    match = re.search(rf"\b(?P<current>{MONTH_NAME_PATTERN})\b", text, re.IGNORECASE)
+    if not match:
+        return None
+
+    current_month = MONTH_NAME_TO_NUMBER[match.group("current").lower()]
+    return current_month, 12 if current_month == 1 else current_month - 1
 
 
 # -------------------------------------------------------------
@@ -166,7 +196,8 @@ def verify_claim(claim, df):
         df_working["_metric_num"] = pd.to_numeric(df_working[metric_col], errors="coerce").fillna(0)
 
         # 3. Detect time window: Month-over-Month vs Year-over-Year
-        is_monthly = any(term in time_period or term in original_sentence.lower() for term in ["month", "monthly", "recent month", "mom"])
+        named_months = extract_named_month_comparison(f"{time_period} {original_sentence}")
+        is_monthly = named_months is not None or any(term in time_period or term in original_sentence.lower() for term in ["month", "monthly", "recent month", "mom"])
         is_yearly = any(term in time_period or term in original_sentence.lower() for term in ["year", "annual", "annually", "yoy", "previous year"])
 
         # Monthly growth calculation
@@ -184,7 +215,29 @@ def verify_claim(claim, df):
                     "evidence": "Dataset requires at least 2 distinct months of data to calculate month-over-month growth."
                 }
 
-            curr_period, prev_period = periods[-1], periods[-2]
+            if named_months:
+                current_month, previous_month = named_months
+                matching_periods = []
+                for candidate in periods:
+                    if candidate.month != current_month:
+                        continue
+                    previous_year = candidate.year - 1 if previous_month > current_month else candidate.year
+                    comparison_period = pd.Period(year=previous_year, month=previous_month, freq="M")
+                    if comparison_period in grouped.index:
+                        matching_periods.append((candidate, comparison_period))
+
+                if not matching_periods:
+                    return {
+                        "original_sentence": original_sentence,
+                        "verdict": "UNCLEAR",
+                        "claimed_value": claimed_val,
+                        "real_value": None,
+                        "evidence": "Dataset does not contain both named months required for this comparison."
+                    }
+
+                curr_period, prev_period = matching_periods[-1]
+            else:
+                curr_period, prev_period = periods[-1], periods[-2]
             curr_val, prev_val = float(grouped[curr_period]), float(grouped[prev_period])
 
             # Division by zero guard
